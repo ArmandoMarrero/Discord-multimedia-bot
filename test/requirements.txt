@@ -1,0 +1,49 @@
+import os
+import discord
+from discord.ext import commands
+from googleapiclient.discovery import build
+
+# Cargar variables de entorno desde el archivo .env
+from dotenv import load_dotenv
+load_dotenv()
+
+# Configurar el cliente de la API de YouTube
+YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')
+youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+
+# Crear el bot con el prefijo '!'
+bot = commands.Bot(command_prefix='!')
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user.name}')
+
+@bot.command()
+async def search(ctx, *, query):
+    try:
+        # Realizar la búsqueda en YouTube
+        request = youtube.search().list(
+            part='snippet',
+            q=query,
+            type='video',
+            maxResults=5
+        )
+        response = request.execute()
+
+        # Mostrar los resultados de la búsqueda
+        for item in response['items']:
+            video_title = item['snippet']['title']
+            video_id = item['id']['videoId']
+            video_url = f'https://www.youtube.com/watch?v={video_id}'
+            await ctx.send(f'**{video_title}**: {video_url}')
+
+    except Exception as e:
+        print(f'An error occurred: {e}')
+        await ctx.send('An error occurred while processing your request.')
+
+# Obtener el token del bot desde las variables de entorno
+TOKEN = os.getenv('DISCORD_TOKEN')
+
+# Iniciar el bot
+bot.run(TOKEN)
+
